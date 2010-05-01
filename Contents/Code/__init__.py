@@ -34,7 +34,7 @@ def MainMenu():
   return dir
 
 def FeaturedMenu(sender, choice=''):
-  dir = MediaContainer(viewGroup='InfoList', title2='Featured' if choice == '' else choice)
+  dir = MediaContainer(viewGroup='InfoList', title2=sender.itemTitle if choice == '' else choice)
   doc = XML.ElementFromURL(FTV_ROOT if choice == '' else FTV_ROOT+'/topic/'+choice, True)
   cinema = doc.xpath('//div[@class and contains(concat(" ",normalize-space(@class)," "), " common_cinema ")]')[0]
   title = cinema.xpath('.//div[@class="cinema_content"]/h2/a')[0].text
@@ -61,6 +61,8 @@ def TopicMenu(sender, choice=''):
   elif choice in FTV_TOPICS:
     dir.Append(Function(DirectoryItem(FeaturedMenu, title="Featured"), choice=choice))
     dir.Append(Function(DirectoryItem(TopicMenu, title="Most Recent"), choice=choice.lower()+'/all'))
+    dir.Append(Function(DirectoryItem(MostMenu, title="Most Watched"), choice='views', topic=choice.lower()))
+    dir.Append(Function(DirectoryItem(MostMenu, title="Most Commented"), choice='comments', topic=choice.lower()))
   else:
     dir.viewGroup = 'InfoList'
     for e in XML.ElementFromURL(FTV_ROOT+'/topic/'+choice, True).xpath('//div[@class="featured_bit"]'):
@@ -73,11 +75,12 @@ def TopicMenu(sender, choice=''):
       dir.Append(Function(RTMPVideoItem(PlayForaVideo, title=title, subtitle=subtitle, summary=summary, thumb=FTV_ROOT+thumb[thumb.find('(')+1:thumb.find(')')]), url=FTV_ROOT+key))
   return dir
 
-def MostMenu(sender, choice):
-  dir = MediaContainer(viewGroup='InfoList', title2="Most Watched" if choice == 'views' else "Most Commented")
+def MostMenu(sender, choice, topic=''):
+  dir = MediaContainer(viewGroup='InfoList', title2=sender.itemTitle)
   res = []
   keys = []
-  for topic in map(str.lower, FTV_TOPICS):
+  tops = map(str.lower, FTV_TOPICS) if topic == '' else [topic]
+  for topic in tops:
     for e in XML.ElementFromURL('%s/topic/%s/all?sort=%s' % (FTV_ROOT, topic, choice), True).xpath('//div[@class="featured_bit"]'):
       title = e.xpath('.//div[@class="featured_title"]/a')[0].text
       href = e.xpath('.//div[@class="featured_title"]/a')[0].get('href')
