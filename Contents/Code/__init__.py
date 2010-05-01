@@ -9,6 +9,7 @@ LLNW_ROOT  = 'rtmp://foratv.fcod.llnwd.net/a953/o10'
 FTV_TOPICS = ['Economy', 'Environment', 'Politics', 'Science', 'Technology', 'Culture']
 FTV_PLAYER = '/fora/fora_player_full?cid=%s&h=0&b=0&p=FORA_Player_5&r=Other/Unrecognized'
 CACHE_INTERVAL	= 3600 * 6
+MAX_ITEMS  = 40
 
 def Start():
   Plugin.AddPrefixHandler(FTV_PREFIX, MainMenu, 'FORA.tv', 'icon-default.png', 'art-default.png')
@@ -89,13 +90,13 @@ def MostMenu(sender, choice):
         res += [(c, key, title, subtitle, thumb, topic)]
   sres = sorted(res, key=lambda t: t[0])
   sres.reverse()
-  for item in sres[:min(40, len(sres))]:
+  for item in sres[:min(MAX_ITEMS, len(sres))]:
     dir.Append(Function(RTMPVideoItem(PlayForaVideo, title=item[2], subtitle=item[3], summary=item[5].title()+'\n'+str(item[0])+(' Views' if choice == 'views' else ' Comments'), thumb=FTV_ROOT+item[4][item[4].find('(')+1:item[4].find(')')]), url=FTV_ROOT+item[1]))
   return dir
 
 def SearchMenu(sender, query):
   dir = MediaContainer(viewGroup='InfoList', title2=query)
-  for e in XML.ElementFromURL(String.Quote(FTV_ROOT+'/search_video?q=%s&per_page=50' % query), True).xpath('//div[@class="clip_bit "]'):
+  for e in XML.ElementFromURL(FTV_ROOT+'/search_video?q=%s&per_page=%s' % (String.Quote(query), MAX_ITEMS), True).xpath('//div[@class="clip_bit "]'):
     title = e.xpath('.//a[@class="clip_bit_title"]')[0].text
     href = e.xpath('.//a[@class="cropped_thumb"]')[0].get('href')
     key = href[0:href.find('#')]
