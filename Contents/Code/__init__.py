@@ -1,15 +1,17 @@
 from PMS import *
 from PMS.Objects import *
 from PMS.Shortcuts import *
+from datetime import *
 import re
 
-FTV_PREFIX = '/video/foratv_r1'
-FTV_ROOT   = 'http://fora.tv'
-LLNW_ROOT  = 'rtmp://foratv.fcod.llnwd.net/a953/o10'
-FTV_TOPICS = ['Economy', 'Environment', 'Politics', 'Science', 'Technology', 'Culture']
-FTV_PLAYER = '/fora/fora_player_full?cid=%s&h=0&b=0&p=FORA_Player_5&r=Other/Unrecognized'
-CACHE_INTERVAL	= 3600 * 6
-MAX_ITEMS  = 40
+FTV_PREFIX     = '/video/foratv_r2'
+FTV_ROOT       = 'http://fora.tv'
+LLNW_ROOT      = 'rtmp://foratv.fcod.llnwd.net/a953/o10'
+FTV_TOPICS     = ['Economy', 'Environment', 'Politics', 'Science', 'Technology', 'Culture']
+FTV_PLAYER     = '/fora/fora_player_full?cid=%s&h=0&b=0&p=FORA_Player_5&r=Other/Unrecognized'
+CACHE_INTERVAL = 3600 * 6
+MAX_ITEMS      = 40
+MOST_WINDOW    = 14
 
 def Start():
   Plugin.AddPrefixHandler(FTV_PREFIX, MainMenu, 'FORA.tv', 'icon-default.png', 'art-default.png')
@@ -27,9 +29,9 @@ def UpdateCache():
 def MainMenu():
   dir = MediaContainer()
   dir.Append(Function(DirectoryItem(FeaturedMenu, title="Featured")))
-  dir.Append(Function(DirectoryItem(MostMenu, title="Most Watched"), choice='views'))
-  dir.Append(Function(DirectoryItem(MostMenu, title="Most Commented"), choice='comments'))
   dir.Append(Function(DirectoryItem(TopicMenu, title="By Topic")))
+  dir.Append(Function(DirectoryItem(MostMenu, title="Week's Most Watched"), choice='views'))
+  dir.Append(Function(DirectoryItem(MostMenu, title="Week's Most Commented"), choice='comments'))
   dir.Append(Function(SearchDirectoryItem(SearchMenu, thumb=R('icon-default.png'), title='Search FORA.tv', prompt='Search FORA.tv')))
   return dir
 
@@ -61,8 +63,8 @@ def TopicMenu(sender, choice=''):
   elif choice in FTV_TOPICS:
     dir.Append(Function(DirectoryItem(FeaturedMenu, title="Featured"), choice=choice))
     dir.Append(Function(DirectoryItem(TopicMenu, title="Most Recent"), choice=choice.lower()+'/all'))
-    dir.Append(Function(DirectoryItem(MostMenu, title="Most Watched"), choice='views', topic=choice.lower()))
-    dir.Append(Function(DirectoryItem(MostMenu, title="Most Commented"), choice='comments', topic=choice.lower()))
+    dir.Append(Function(DirectoryItem(MostMenu, title="Week's Most Watched"), choice='views', topic=choice.lower()))
+    dir.Append(Function(DirectoryItem(MostMenu, title="Week's Most Commented"), choice='comments', topic=choice.lower()))
   else:
     dir.viewGroup = 'InfoList'
     for e in XML.ElementFromURL(FTV_ROOT+'/topic/'+choice, True).xpath('//div[@class="featured_bit"]'):
@@ -81,7 +83,8 @@ def MostMenu(sender, choice, topic=''):
   keys = []
   tops = map(str.lower, FTV_TOPICS) if topic == '' else [topic]
   for topic in tops:
-    for e in XML.ElementFromURL('%s/topic/%s/all?sort=%s' % (FTV_ROOT, topic, choice), True).xpath('//div[@class="featured_bit"]'):
+    #for e in XML.ElementFromURL('%s/topic/%s/all?sort=%s' % (FTV_ROOT, topic, choice), True).xpath('//div[@class="featured_bit"]'):
+    for e in XML.ElementFromURL('%s/topic/%s/all' % (FTV_ROOT, topic), True).xpath('//div[@class="featured_bit"]'):
       title = e.xpath('.//div[@class="featured_title"]/a')[0].text
       href = e.xpath('.//div[@class="featured_title"]/a')[0].get('href')
       key = href[0:href.find('#')]
@@ -89,8 +92,12 @@ def MostMenu(sender, choice, topic=''):
       subtitle = e.xpath('.//div[@class="l_partner"]/a')[0].text
       c = int(e.xpath('.//span[@class="views"]')[0 if choice == 'views' else 1].text.replace(',', ''))
       if key not in keys:
-        keys += [key]
-        res += [(c, key, title, subtitle, thumb, topic)]
+        (y,m,d) = map(int, key.split('/')[1:4])
+        if datetime.now()-timedelta(days=MOST_WINDOW) < datetime(y,m,d):
+          keys += [key]
+          res += [(c, key, title, subtitle, thumb, topic)]
+        else:
+          Log('skipped '+key)
   sres = sorted(res, key=lambda t: t[0])
   sres.reverse()
   for item in sres[:min(MAX_ITEMS, len(sres))]:
