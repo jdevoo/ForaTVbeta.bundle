@@ -96,8 +96,6 @@ def MostMenu(sender, choice, topic=''):
         if datetime.now()-timedelta(days=MOST_WINDOW) < datetime(y,m,d):
           keys += [key]
           res += [(c, key, title, subtitle, thumb, topic)]
-        else:
-          Log('skipped '+key)
   sres = sorted(res, key=lambda t: t[0])
   sres.reverse()
   for item in sres[:min(MAX_ITEMS, len(sres))]:
