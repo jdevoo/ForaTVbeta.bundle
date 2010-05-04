@@ -4,14 +4,14 @@ from PMS.Shortcuts import *
 from datetime import *
 import re
 
-FTV_PREFIX     = '/video/foratv_r2'
+FTV_PREFIX     = '/video/foratv_r3'
 FTV_ROOT       = 'http://fora.tv'
 LLNW_ROOT      = 'rtmp://foratv.fcod.llnwd.net/a953/o10'
 FTV_TOPICS     = ['Economy', 'Environment', 'Politics', 'Science', 'Technology', 'Culture']
 FTV_PLAYER     = '/fora/fora_player_full?cid=%s&h=0&b=0&p=FORA_Player_5&r=Other/Unrecognized'
 CACHE_INTERVAL = 3600 * 6
 MAX_ITEMS      = 40
-MOST_WINDOW    = 14
+WEEKS_MOST     = 14
 
 def Start():
   Plugin.AddPrefixHandler(FTV_PREFIX, MainMenu, 'FORA.tv', 'icon-default.png', 'art-default.png')
@@ -41,7 +41,7 @@ def FeaturedMenu(sender, choice=''):
   cinema = doc.xpath('//div[@class and contains(concat(" ",normalize-space(@class)," "), " common_cinema ")]')[0]
   title = cinema.xpath('.//div[@class="cinema_content"]/h2/a')[0].text
   href = cinema.xpath('.//div[@class="cinema_content"]/h2/a')[0].get('href')
-  key = href[0:href.find('#')]
+  key = href[0:href.find('#')] if href.find('#') != -1 else href
   thumb = cinema.xpath('.//a[@class="cinema_image"]/img')[0].get('src')
   subtitle = cinema.xpath('.//div[@class="l_partner"]/a')[0].text
   summary = cinema.xpath('.//div[@class="cinema_content"]/h3')[0].text.strip()
@@ -49,7 +49,7 @@ def FeaturedMenu(sender, choice=''):
   for e in doc.xpath('//div[@class="featured_bit"]'):
     title = e.xpath('.//div[@class="featured_title"]/a')[0].text
     href = e.xpath('.//a')[0].get('href')
-    key = href[0:href.find('#')]
+    key = href[0:href.find('#')] if href.find('#') != -1 else href
     thumb = e.xpath('.//a/img')[0].get('src')
     subtitle = e.xpath('.//div[@class="l_partner"]/a')[0].text
     dir.Append(Function(RTMPVideoItem(PlayForaVideo, title=title, subtitle=subtitle, thumb=FTV_ROOT+thumb), url=FTV_ROOT+key))
@@ -70,7 +70,7 @@ def TopicMenu(sender, choice=''):
     for e in XML.ElementFromURL(FTV_ROOT+'/topic/'+choice, True).xpath('//div[@class="featured_bit"]'):
       title = e.xpath('.//div[@class="featured_title"]/a')[0].text
       href = e.xpath('.//div[@class="featured_title"]/a')[0].get('href')
-      key = href[0:href.find('#')]
+      key = href[0:href.find('#')] if href.find('#') != -1 else href
       thumb = e.xpath('.//div[@class="cropped_image"]')[0].get('style')
       subtitle = e.xpath('.//div[@class="l_partner"]/a')[0].text
       summary = 'Views: %s\nComments: %s' % (e.xpath('.//span[@class="views"]')[0].text, e.xpath('.//span[@class="views"]')[1].text)
@@ -87,13 +87,13 @@ def MostMenu(sender, choice, topic=''):
     for e in XML.ElementFromURL('%s/topic/%s/all' % (FTV_ROOT, topic), True).xpath('//div[@class="featured_bit"]'):
       title = e.xpath('.//div[@class="featured_title"]/a')[0].text
       href = e.xpath('.//div[@class="featured_title"]/a')[0].get('href')
-      key = href[0:href.find('#')]
+      key = href[0:href.find('#')] if href.find('#') != -1 else href
       thumb = e.xpath('.//div[@class="cropped_image"]')[0].get('style')
       subtitle = e.xpath('.//div[@class="l_partner"]/a')[0].text
       c = int(e.xpath('.//span[@class="views"]')[0 if choice == 'views' else 1].text.replace(',', ''))
       if key not in keys:
         (y,m,d) = map(int, key.split('/')[1:4])
-        if datetime.now()-timedelta(days=MOST_WINDOW) < datetime(y,m,d):
+        if datetime.now()-timedelta(days=WEEKS_MOST) < datetime(y,m,d):
           keys += [key]
           res += [(c, key, title, subtitle, thumb, topic)]
   sres = sorted(res, key=lambda t: t[0])
@@ -107,7 +107,7 @@ def SearchMenu(sender, query):
   for e in XML.ElementFromURL(FTV_ROOT+'/search_video?q=%s&per_page=%s' % (String.Quote(query), MAX_ITEMS), True).xpath('//div[@class="clip_bit "]'):
     title = e.xpath('.//a[@class="clip_bit_title"]')[0].text
     href = e.xpath('.//a[@class="cropped_thumb"]')[0].get('href')
-    key = href[0:href.find('#')]
+    key = href[0:href.find('#')] if href.find('#') != -1 else href
     thumb = e.xpath('.//a[@class="cropped_thumb"]/img')[0].get('src')
     subtitle = e.xpath('.//div[@class="l_partner"]/a')[0].text
     summary = 'Views: %s\nComments: %s' % (e.xpath('.//span[@class="views"]')[0].text, e.xpath('.//span[@class="views"]')[1].text)
