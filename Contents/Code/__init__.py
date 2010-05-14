@@ -4,7 +4,7 @@ from PMS.Shortcuts import *
 from datetime import *
 import re
 
-FTV_PREFIX = '/video/foratv_r1'
+FTV_PREFIX = '/video/foratv_r4'
 FTV_ROOT   = 'http://fora.tv'
 LLNW_ROOT  = 'rtmp://foratv.fcod.llnwd.net/a953/o10'
 FTV_TOPICS = ['Economy', 'Environment', 'Politics', 'Science', 'Technology', 'Culture']
