@@ -13,13 +13,13 @@ CACHE_INTERVAL	= 3600 * 6
 MAX_ITEMS  = 40
 
 def Start():
-  Plugin.AddPrefixHandler(FTV_PREFIX, MainMenu, 'FORA.tv', 'icon-default.png', 'art-default.png')
+  Plugin.AddPrefixHandler(FTV_PREFIX, MainMenu, 'FORA.tv', 'icon-fora-r4.png', 'art-fora-r4.png')
   Plugin.AddViewGroup('InfoList', viewMode='InfoList', mediaType='items')
   Plugin.AddViewGroup('List', viewMode='List', mediaType='items')
   MediaContainer.title1 = 'FORA.tv'
   MediaContainer.content = 'items'
-  MediaContainer.art = R('art-default.png')
-  DirectoryItem.thumb = R('icon-default.png')
+  MediaContainer.art = R('art-fora-r4.png')
+  DirectoryItem.thumb = R('icon-fora-r4.png')
   HTTP.SetCacheTime(CACHE_INTERVAL)
 
 def UpdateCache():
@@ -31,20 +31,22 @@ def MainMenu():
   dir.Append(Function(DirectoryItem(TopicMenu, title="By Topic")))
   dir.Append(Function(DirectoryItem(MostMenu, title="Week's Most Watched"), choice='views'))
   dir.Append(Function(DirectoryItem(MostMenu, title="Week's Most Commented"), choice='comments'))
-  dir.Append(Function(SearchDirectoryItem(SearchMenu, thumb=R('icon-default.png'), title='Search FORA.tv', prompt='Search FORA.tv')))
+  dir.Append(Function(SearchDirectoryItem(SearchMenu, thumb=R('icon-fora-r4.png'), title='Search FORA.tv', prompt='Search FORA.tv')))
   return dir
 
 def FeaturedMenu(sender, choice=''):
   dir = MediaContainer(viewGroup='InfoList', title2=sender.itemTitle if choice == '' else choice)
   doc = XML.ElementFromURL(FTV_ROOT if choice == '' else FTV_ROOT+'/topic/'+choice, True)
   cinema = doc.xpath('//div[@class and contains(concat(" ",normalize-space(@class)," "), " common_cinema ")]')[0]
-  title = cinema.xpath('.//div[@class="cinema_content"]/h2/a')[0].xpath('string()')
-  href = cinema.xpath('.//div[@class="cinema_content"]/h2/a')[0].get('href')
-  key = href[0:href.find('#')] if href.find('#') != -1 else href
-  thumb = cinema.xpath('.//a[@class="cinema_image"]/img')[0].get('src')
-  subtitle = cinema.xpath('.//div[@class="l_partner"]/a')[0].xpath('string()')
-  summary = cinema.xpath('.//div[@class="cinema_content"]/h3')[0].xpath('string()').strip()
-  dir.Append(Function(RTMPVideoItem(PlayForaVideo, title=title, subtitle=subtitle, summary=summary, thumb=FTV_ROOT+thumb), url=FTV_ROOT+key))
+  Log(cinema.xpath('.//a[@class="premium"]'))
+  if not cinema.xpath('.//a[@class="premium"]'):
+    title = cinema.xpath('.//div[@class="cinema_content"]/h2/a')[0].xpath('string()')
+    href = cinema.xpath('.//div[@class="cinema_content"]/h2/a')[0].get('href')
+    key = href[0:href.find('#')] if href.find('#') != -1 else href
+    thumb = cinema.xpath('.//a[@class="cinema_image"]/img')[0].get('src')
+    subtitle = cinema.xpath('.//div[@class="l_partner"]/a')[0].xpath('string()')
+    summary = cinema.xpath('.//div[@class="cinema_content"]/h3')[0].xpath('string()').strip()
+    dir.Append(Function(RTMPVideoItem(PlayForaVideo, title=title, subtitle=subtitle, summary=summary, thumb=FTV_ROOT+thumb), url=FTV_ROOT+key))
   for e in doc.xpath('//div[@class="featured_bit"]'):
     title = e.xpath('.//div[@class="featured_title"]/a')[0].xpath('string()')
     href = e.xpath('.//a')[0].get('href')
