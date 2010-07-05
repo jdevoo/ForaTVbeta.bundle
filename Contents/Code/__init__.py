@@ -13,13 +13,13 @@ CACHE_INTERVAL	= 3600 * 6
 MAX_ITEMS  = 40
 
 def Start():
-  Plugin.AddPrefixHandler(FTV_PREFIX, MainMenu, 'FORA.tv', 'icon-fora-r6.png', 'art-fora-r6.png')
+  Plugin.AddPrefixHandler(FTV_PREFIX, MainMenu, 'FORA.tv', 'icon-default.png', 'art-default.png')
   Plugin.AddViewGroup('InfoList', viewMode='InfoList', mediaType='items')
   Plugin.AddViewGroup('List', viewMode='List', mediaType='items')
   MediaContainer.title1 = 'FORA.tv'
   MediaContainer.content = 'items'
-  MediaContainer.art = R('art-fora-r6.png')
-  DirectoryItem.thumb = R('icon-fora-r6.png')
+  MediaContainer.art = R('art-default.png')
+  DirectoryItem.thumb = R('icon-default.png')
   HTTP.SetCacheTime(CACHE_INTERVAL)
 
 def UpdateCache():
@@ -31,7 +31,7 @@ def MainMenu():
   dir.Append(Function(DirectoryItem(TopicMenu, title="By Topic")))
   dir.Append(Function(DirectoryItem(MostMenu, title="Week's Most Watched"), choice='views'))
   dir.Append(Function(DirectoryItem(MostMenu, title="Week's Most Commented"), choice='comments'))
-  dir.Append(Function(SearchDirectoryItem(SearchMenu, thumb=R('icon-fora-r6.png'), title='Search FORA.tv', prompt='Search FORA.tv')))
+  dir.Append(Function(SearchDirectoryItem(SearchMenu, thumb=R('icon-default.png'), title='Search FORA.tv', prompt='Search FORA.tv')))
   return dir
 
 def FeaturedMenu(sender, choice=''):
