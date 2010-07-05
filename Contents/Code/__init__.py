@@ -4,7 +4,7 @@ from PMS.Shortcuts import *
 from datetime import *
 import re
 
-FTV_PREFIX = '/video/foratv_r4'
+FTV_PREFIX = '/video/foratv_r6'
 FTV_ROOT   = 'http://fora.tv'
 LLNW_ROOT  = 'rtmp://foratv.fcod.llnwd.net/a953/o10'
 FTV_TOPICS = ['Economy', 'Environment', 'Politics', 'Science', 'Technology', 'Culture']
@@ -13,13 +13,13 @@ CACHE_INTERVAL	= 3600 * 6
 MAX_ITEMS  = 40
 
 def Start():
-  Plugin.AddPrefixHandler(FTV_PREFIX, MainMenu, 'FORA.tv', 'icon-fora-r4.png', 'art-fora-r4.png')
+  Plugin.AddPrefixHandler(FTV_PREFIX, MainMenu, 'FORA.tv', 'icon-fora-r6.png', 'art-fora-r6.png')
   Plugin.AddViewGroup('InfoList', viewMode='InfoList', mediaType='items')
   Plugin.AddViewGroup('List', viewMode='List', mediaType='items')
   MediaContainer.title1 = 'FORA.tv'
   MediaContainer.content = 'items'
-  MediaContainer.art = R('art-fora-r4.png')
-  DirectoryItem.thumb = R('icon-fora-r4.png')
+  MediaContainer.art = R('art-fora-r6.png')
+  DirectoryItem.thumb = R('icon-fora-r6.png')
   HTTP.SetCacheTime(CACHE_INTERVAL)
 
 def UpdateCache():
@@ -31,14 +31,13 @@ def MainMenu():
   dir.Append(Function(DirectoryItem(TopicMenu, title="By Topic")))
   dir.Append(Function(DirectoryItem(MostMenu, title="Week's Most Watched"), choice='views'))
   dir.Append(Function(DirectoryItem(MostMenu, title="Week's Most Commented"), choice='comments'))
-  dir.Append(Function(SearchDirectoryItem(SearchMenu, thumb=R('icon-fora-r4.png'), title='Search FORA.tv', prompt='Search FORA.tv')))
+  dir.Append(Function(SearchDirectoryItem(SearchMenu, thumb=R('icon-fora-r6.png'), title='Search FORA.tv', prompt='Search FORA.tv')))
   return dir
 
 def FeaturedMenu(sender, choice=''):
   dir = MediaContainer(viewGroup='InfoList', title2=sender.itemTitle if choice == '' else choice)
   doc = XML.ElementFromURL(FTV_ROOT if choice == '' else FTV_ROOT+'/topic/'+choice, True)
   cinema = doc.xpath('//div[@class and contains(concat(" ",normalize-space(@class)," "), " common_cinema ")]')[0]
-  Log(cinema.xpath('.//a[@class="premium"]'))
   if not cinema.xpath('.//a[@class="premium"]'):
     title = cinema.xpath('.//div[@class="cinema_content"]/h2/a')[0].xpath('string()')
     href = cinema.xpath('.//div[@class="cinema_content"]/h2/a')[0].get('href')
@@ -47,11 +46,11 @@ def FeaturedMenu(sender, choice=''):
     subtitle = cinema.xpath('.//div[@class="l_partner"]/a')[0].xpath('string()')
     summary = cinema.xpath('.//div[@class="cinema_content"]/h3')[0].xpath('string()').strip()
     dir.Append(Function(RTMPVideoItem(PlayForaVideo, title=title, subtitle=subtitle, summary=summary, thumb=FTV_ROOT+thumb), url=FTV_ROOT+key))
-  for e in doc.xpath('//div[@class="featured_bit"]'):
+  for e in doc.xpath('//div[@class="left_column"]/div[@class="featured_bit"]'):
     title = e.xpath('.//div[@class="featured_title"]/a')[0].xpath('string()')
     href = e.xpath('.//a')[0].get('href')
     key = href[0:href.find('#')] if href.find('#') != -1 else href
-    thumb = e.xpath('.//a/img')[0].get('src')
+    thumb = e.xpath('.//a[@class="cropped_image"]/img')[0].get('src')
     subtitle = e.xpath('.//div[@class="l_partner"]/a')[0].xpath('string()')
     dir.Append(Function(RTMPVideoItem(PlayForaVideo, title=title, subtitle=subtitle, thumb=FTV_ROOT+thumb), url=FTV_ROOT+key))
   return dir
@@ -68,7 +67,7 @@ def TopicMenu(sender, choice=''):
     dir.Append(Function(DirectoryItem(MostMenu, title="Week's Most Commented"), choice='comments', topic=choice.lower()))
   else:
     dir.viewGroup = 'InfoList'
-    for e in XML.ElementFromURL(FTV_ROOT+'/topic/'+choice, True).xpath('//div[@class="featured_bit"]'):
+    for e in XML.ElementFromURL(FTV_ROOT+'/topic/'+choice, True).xpath('//div[@class="left_column"]/div[@class="featured_bit"]'):
       title = e.xpath('.//div[@class="featured_title"]/a')[0].xpath('string()')
       href = e.xpath('.//div[@class="featured_title"]/a')[0].get('href')
       key = href[0:href.find('#')] if href.find('#') != -1 else href
@@ -84,8 +83,7 @@ def MostMenu(sender, choice, topic=''):
   keys = []
   tops = map(str.lower, FTV_TOPICS) if topic == '' else [topic]
   for topic in tops:
-    #for e in XML.ElementFromURL('%s/topic/%s/all?sort=%s' % (FTV_ROOT, topic, choice), True).xpath('//div[@class="featured_bit"]'):
-    for e in XML.ElementFromURL('%s/topic/%s/all' % (FTV_ROOT, topic), True).xpath('//div[@class="featured_bit"]'):
+    for e in XML.ElementFromURL('%s/topic/%s/all' % (FTV_ROOT, topic), True).xpath('//div[@class="left_column"]/div[@class="featured_bit"]'):
       title = e.xpath('.//div[@class="featured_title"]/a')[0].xpath('string()')
       href = e.xpath('.//div[@class="featured_title"]/a')[0].get('href')
       key = href[0:href.find('#')] if href.find('#') != -1 else href
@@ -116,9 +114,11 @@ def SearchMenu(sender, query):
   return dir
 
 def PlayForaVideo(sender, url):
+  #from lxml import etree
   page = HTTP.Request(url)
   clipid = re.search('var full_program_clipid = (.+?);', page, re.DOTALL).group(1)
   doc = XML.ElementFromURL(FTV_ROOT+FTV_PLAYER % clipid, True)
+  #Log(etree.tostring(doc, pretty_print=True))
   clip = re.search('^(.*)(\.flv)$', doc.xpath('//playerdata/encodeinfo/encode_url')[0].text, re.DOTALL).group(1)
   return Redirect(RTMPVideoItem(LLNW_ROOT, clip))
 
