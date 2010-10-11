@@ -47,12 +47,15 @@ def FeaturedMenu(sender, choice=''):
     summary = cinema.xpath('.//div[@class="cinema_content"]/h3')[0].xpath('string()').strip()
     dir.Append(Function(RTMPVideoItem(PlayForaVideo, title=title, subtitle=subtitle, summary=summary, thumb=FTV_ROOT+thumb), url=FTV_ROOT+key))
   for e in doc.xpath('//div[@class="left_column"]/div[@class="featured_bit"]'):
-    title = e.xpath('.//div[@class="featured_title"]/a')[0].xpath('string()')
-    href = e.xpath('.//a')[0].get('href')
-    key = href[0:href.find('#')] if href.find('#') != -1 else href
-    thumb = e.xpath('.//a[@class="cropped_image"]/img')[0].get('src')
-    subtitle = e.xpath('.//div[@class="l_partner"]/a')[0].xpath('string()')
-    dir.Append(Function(RTMPVideoItem(PlayForaVideo, title=title, subtitle=subtitle, thumb=FTV_ROOT+thumb), url=FTV_ROOT+key))
+    if e.xpath('.//a[@class="premium"]'):
+      continue
+    else:
+      title = e.xpath('.//div[@class="featured_title"]/a')[0].xpath('string()')
+      href = e.xpath('.//a')[0].get('href')
+      key = href[0:href.find('#')] if href.find('#') != -1 else href
+      thumb = e.xpath('.//a[@class="cropped_image"]/img')[0].get('src')
+      subtitle = e.xpath('.//div[@class="l_partner"]/a')[0].xpath('string()')
+      dir.Append(Function(RTMPVideoItem(PlayForaVideo, title=title, subtitle=subtitle, thumb=FTV_ROOT+thumb), url=FTV_ROOT+key))
   return dir
 
 def TopicMenu(sender, choice=''):
@@ -68,13 +71,16 @@ def TopicMenu(sender, choice=''):
   else:
     dir.viewGroup = 'InfoList'
     for e in XML.ElementFromURL(FTV_ROOT+'/topic/'+choice, True).xpath('//div[@class="left_column"]/div[@class="featured_bit"]'):
-      title = e.xpath('.//div[@class="featured_title"]/a')[0].xpath('string()')
-      href = e.xpath('.//div[@class="featured_title"]/a')[0].get('href')
-      key = href[0:href.find('#')] if href.find('#') != -1 else href
-      thumb = e.xpath('.//div[@class="cropped_image"]')[0].get('style')
-      subtitle = e.xpath('.//div[@class="l_partner"]/a')[0].xpath('string()')
-      summary = 'Views: %s\nComments: %s' % (e.xpath('.//span[@class="views"]')[0].text, e.xpath('.//span[@class="views"]')[1].text)
-      dir.Append(Function(RTMPVideoItem(PlayForaVideo, title=title, subtitle=subtitle, summary=summary, thumb=FTV_ROOT+thumb[thumb.find('(')+1:thumb.find(')')]), url=FTV_ROOT+key))
+      if e.xpath('.//a[@class="premium"]'):
+        continue
+      else:
+        title = e.xpath('.//div[@class="featured_title"]/a')[0].xpath('string()')
+        href = e.xpath('.//div[@class="featured_title"]/a')[0].get('href')
+        key = href[0:href.find('#')] if href.find('#') != -1 else href
+        thumb = e.xpath('.//div[@class="cropped_image"]')[0].get('style')
+        subtitle = e.xpath('.//div[@class="l_partner"]/a')[0].xpath('string()')
+        summary = 'Views: %s\nComments: %s' % (e.xpath('.//span[@class="views"]')[0].text, e.xpath('.//span[@class="views"]')[1].text)
+        dir.Append(Function(RTMPVideoItem(PlayForaVideo, title=title, subtitle=subtitle, summary=summary, thumb=FTV_ROOT+thumb[thumb.find('(')+1:thumb.find(')')]), url=FTV_ROOT+key))
   return dir
 
 def MostMenu(sender, choice, topic=''):
@@ -84,17 +90,20 @@ def MostMenu(sender, choice, topic=''):
   tops = map(str.lower, FTV_TOPICS) if topic == '' else [topic]
   for topic in tops:
     for e in XML.ElementFromURL('%s/topic/%s/all' % (FTV_ROOT, topic), True).xpath('//div[@class="left_column"]/div[@class="featured_bit"]'):
-      title = e.xpath('.//div[@class="featured_title"]/a')[0].xpath('string()')
-      href = e.xpath('.//div[@class="featured_title"]/a')[0].get('href')
-      key = href[0:href.find('#')] if href.find('#') != -1 else href
-      thumb = e.xpath('.//div[@class="cropped_image"]')[0].get('style')
-      subtitle = e.xpath('.//div[@class="l_partner"]/a')[0].xpath('string()')
-      c = int(e.xpath('.//span[@class="views"]')[0 if choice == 'views' else 1].text.replace(',', ''))
-      if key not in keys:
-        (y,m,d) = map(int, key.split('/')[1:4])
-        if datetime.now()-timedelta(days=14) < datetime(y,m,d):
-          keys += [key]
-          res += [(c, key, title, subtitle, thumb, topic)]
+      if e.xpath('.//a[@class="premium"]'):
+        continue
+      else:
+        title = e.xpath('.//div[@class="featured_title"]/a')[0].xpath('string()')
+        href = e.xpath('.//div[@class="featured_title"]/a')[0].get('href')
+        key = href[0:href.find('#')] if href.find('#') != -1 else href
+        thumb = e.xpath('.//div[@class="cropped_image"]')[0].get('style')
+        subtitle = e.xpath('.//div[@class="l_partner"]/a')[0].xpath('string()')
+        c = int(e.xpath('.//span[@class="views"]')[0 if choice == 'views' else 1].text.replace(',', ''))
+        if key not in keys:
+          (y,m,d) = map(int, key.split('/')[1:4])
+          if datetime.now()-timedelta(days=30) < datetime(y,m,d):
+            keys += [key]
+            res += [(c, key, title, subtitle, thumb, topic)]
   sres = sorted(res, key=lambda t: t[0])
   sres.reverse()
   for item in sres[:min(MAX_ITEMS, len(sres))]:
@@ -103,7 +112,7 @@ def MostMenu(sender, choice, topic=''):
 
 def SearchMenu(sender, query):
   dir = MediaContainer(viewGroup='InfoList', title2=query)
-  for e in XML.ElementFromURL(FTV_ROOT+'/search_video?q=%s&per_page=%s' % (String.Quote(query), MAX_ITEMS), True).xpath('//div[@class="clip_bit "]'):
+  for e in XML.ElementFromURL(FTV_ROOT+'/search_video?q=%s&per_page=%s' % (String.Quote(query), MAX_ITEMS), True).xpath('//div[@class="clip_bit"]'):
     title = e.xpath('.//a[@class="clip_bit_title"]')[0].xpath('string()')
     href = e.xpath('.//a[@class="cropped_thumb"]')[0].get('href')
     key = href[0:href.find('#')] if href.find('#') != -1 else href
